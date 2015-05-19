@@ -75,7 +75,8 @@ GST_DEBUG_CATEGORY_EXTERN(_owrsession_debug);
 #define GST_CAT_DEFAULT _owrtransportagent_debug
 
 /* FIXME - re-enable RTX when issues are fixed in GStreamer */
-#undef RTX_ENABLED
+#define RTX_ENABLED
+//#undef RTX_ENABLED
 
 #define DEFAULT_ICE_CONTROLLING_MODE TRUE
 
