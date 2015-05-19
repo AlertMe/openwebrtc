@@ -372,7 +372,7 @@ static void owr_transport_agent_init(OwrTransportAgent *transport_agent)
 
     g_return_if_fail(_owr_is_initialized());
 
-    priv->nice_agent = nice_agent_new(_owr_get_main_context(), NICE_COMPATIBILITY_RFC5245);
+    priv->nice_agent = nice_agent_new(_owr_get_main_context(), NICE_COMPATIBILITY_GOOGLE);
     g_object_bind_property(transport_agent, "ice-controlling-mode", priv->nice_agent,
         "controlling-mode", G_BINDING_SYNC_CREATE);
     g_signal_connect(G_OBJECT(priv->nice_agent), "new-candidate-full",
@@ -989,10 +989,10 @@ static void set_srtp_key(OwrMediaSession *media_session, GParamSpec *pspec,
             "key", srtp_key_buf,
             NULL);
     } else {
-        gchar *dtls_certificate = NULL;
-        g_object_get(media_session, "dtls-certificate", &dtls_certificate, NULL);
+      //gchar *dtls_certificate = NULL;
+      //g_object_get(media_session, "dtls-certificate", &dtls_certificate, NULL);
 
-        if (!dtls_certificate) {
+      //if (!dtls_certificate) {
             g_object_set(dtls_srtp_bin,
                 "srtp-auth", "null",
                 "srtp-cipher", "null",
@@ -1000,8 +1000,8 @@ static void set_srtp_key(OwrMediaSession *media_session, GParamSpec *pspec,
                 "srtcp-cipher", "null",
                 "key", NULL,
                 NULL);
-        } else
-            g_free(dtls_certificate);
+	    //} else
+            //g_free(dtls_certificate);
     }
 
     gst_buffer_unref(srtp_key_buf);
