@@ -87,7 +87,7 @@ enum {
 
 // Default values
 #define DEFAULT_RTCP_MUX                FALSE
-#define DEFAULT_JITTER_BUFFER_LATENCY   250  // [ms]
+#define DEFAULT_JITTER_BUFFER_LATENCY   1000  // [ms]
 
 enum {
     PROP_0,
