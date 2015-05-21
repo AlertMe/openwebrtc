@@ -57,6 +57,11 @@ gboolean _owr_gst_caps_foreach(const GstCaps *caps, OwrGstCapsForeachFunc func, 
 void _owr_deep_notify(GObject *object, GstObject *orig,
     GParamSpec *pspec, gpointer user_data);
 
+int _owr_rotation_and_mirror_to_video_flip_method(guint rotation, gboolean mirror);
+
+GHashTable *_owr_value_table_new();
+GValue *_owr_value_table_add(GHashTable *table, const gchar *key, GType type);
+
 G_END_DECLS
 
 #endif /* __GTK_DOC_IGNORE__ */
