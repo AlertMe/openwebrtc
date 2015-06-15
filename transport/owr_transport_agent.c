@@ -83,6 +83,7 @@ GST_DEBUG_CATEGORY_EXTERN(_owrsession_debug);
 enum {
     PROP_0,
     PROP_ICE_CONTROLLING_MODE,
+    PROP_ICE_COMPATABILITY_MODE,
     N_PROPERTIES
 };
 
@@ -120,6 +121,7 @@ typedef struct {
 struct _OwrTransportAgentPrivate {
     NiceAgent *nice_agent;
     gboolean ice_controlling_mode;
+    gint ice_compatability_mode;
 
     GMutex sessions_lock;
     GHashTable *sessions;
@@ -286,6 +288,11 @@ static void owr_transport_agent_class_init(OwrTransportAgentClass *klass)
         "Ice controlling mode", "Whether the ice agent is in controlling mode",
         DEFAULT_ICE_CONTROLLING_MODE, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS);
 
+    obj_properties[PROP_ICE_COMPATABILITY_MODE] = g_param_spec_int("ice-compatability-mode",
+        "ICE compatability mode", "ICE compatability mode",
+	(gint)NICE_COMPATIBILITY_RFC5245, (gint)NICE_COMPATIBILITY_LAST, (gint)NICE_COMPATIBILITY_RFC5245,
+	G_PARAM_CONSTRUCT_ONLY | G_PARAM_WRITABLE | G_PARAM_STATIC_STRINGS);
+
     gobject_class->set_property = owr_transport_agent_set_property;
     gobject_class->get_property = owr_transport_agent_get_property;
     gobject_class->finalize = owr_transport_agent_finalize;
@@ -373,16 +380,6 @@ static void owr_transport_agent_init(OwrTransportAgent *transport_agent)
 
     g_return_if_fail(_owr_is_initialized());
 
-    priv->nice_agent = nice_agent_new(_owr_get_main_context(), NICE_COMPATIBILITY_GOOGLE);
-    g_object_bind_property(transport_agent, "ice-controlling-mode", priv->nice_agent,
-        "controlling-mode", G_BINDING_SYNC_CREATE);
-    g_signal_connect(G_OBJECT(priv->nice_agent), "new-candidate-full",
-        G_CALLBACK(on_new_candidate), transport_agent);
-    g_signal_connect(G_OBJECT(priv->nice_agent), "candidate-gathering-done",
-        G_CALLBACK(on_candidate_gathering_done), transport_agent);
-    g_signal_connect(G_OBJECT(priv->nice_agent), "component-state-changed",
-        G_CALLBACK(on_component_state_changed), transport_agent);
-
     pipeline_name = g_strdup_printf("transport-agent-%u", priv->agent_id);
     priv->pipeline = gst_pipeline_new(pipeline_name);
     g_free(pipeline_name);
@@ -442,6 +439,16 @@ static void owr_transport_agent_set_property(GObject *object, guint property_id,
     case PROP_ICE_CONTROLLING_MODE:
         priv->ice_controlling_mode = g_value_get_boolean(value);
         break;
+    case PROP_ICE_COMPATABILITY_MODE:
+        if (priv->nice_agent == NULL) {
+	  priv->ice_compatability_mode = g_value_get_int(value);
+	  priv->nice_agent = nice_agent_new(_owr_get_main_context(), (NiceCompatibility)priv->ice_compatability_mode);
+	  g_object_bind_property(transport_agent, "ice-controlling-mode", priv->nice_agent, "controlling-mode", G_BINDING_SYNC_CREATE);
+	  g_signal_connect(G_OBJECT(priv->nice_agent), "new-candidate-full", G_CALLBACK(on_new_candidate), transport_agent);
+	  g_signal_connect(G_OBJECT(priv->nice_agent), "candidate-gathering-done", G_CALLBACK(on_candidate_gathering_done), transport_agent);
+	  g_signal_connect(G_OBJECT(priv->nice_agent), "component-state-changed", G_CALLBACK(on_component_state_changed), transport_agent);
+        }
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
         break;
@@ -463,6 +470,9 @@ static void owr_transport_agent_get_property(GObject *object, guint property_id,
     case PROP_ICE_CONTROLLING_MODE:
         g_value_set_boolean(value, priv->ice_controlling_mode);
         break;
+    case PROP_ICE_COMPATABILITY_MODE:
+        g_value_set_int(value, priv->ice_compatability_mode);
+        break;
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
         break;
@@ -473,6 +483,12 @@ OwrTransportAgent * owr_transport_agent_new(gboolean ice_controlling_mode)
 {
     return g_object_new(OWR_TYPE_TRANSPORT_AGENT, "ice-controlling_mode", ice_controlling_mode,
         NULL);
+}
+
+OwrTransportAgent * owr_transport_agent_new_with_ice_compat(gboolean ice_controlling_mode, gint nice_compatability)
+{
+    return g_object_new(OWR_TYPE_TRANSPORT_AGENT, "ice-controlling-mode", ice_controlling_mode,
+			"ice-compatability-mode", nice_compatability, NULL);
 }
 
 /**
