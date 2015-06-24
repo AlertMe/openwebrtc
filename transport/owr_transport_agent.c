@@ -74,10 +74,6 @@ GST_DEBUG_CATEGORY_EXTERN(_owrtransportagent_debug);
 GST_DEBUG_CATEGORY_EXTERN(_owrsession_debug);
 #define GST_CAT_DEFAULT _owrtransportagent_debug
 
-/* FIXME - re-enable RTX when issues are fixed in GStreamer */
-#define RTX_ENABLED
-//#undef RTX_ENABLED
-
 #define DEFAULT_ICE_CONTROLLING_MODE TRUE
 
 enum {
@@ -981,8 +977,11 @@ static GstElement *add_nice_element(OwrTransportAgent *transport_agent, guint st
         "component", is_rtcp
         ? NICE_COMPONENT_TYPE_RTCP : NICE_COMPONENT_TYPE_RTP, NULL);
 
-    if (is_sink)
-        g_object_set(nice_element, "sync", FALSE, "async", FALSE, "enable-last-sample", FALSE, NULL);
+    if (is_sink) {
+        g_object_set(nice_element, "enable-last-sample", FALSE, NULL);
+        if (is_rtcp)
+            g_object_set(nice_element, "sync", FALSE, "async", FALSE, NULL);
+    }
 
     added_ok = gst_bin_add(GST_BIN(bin), nice_element);
     g_warn_if_fail(added_ok);
@@ -2198,7 +2197,6 @@ static GstCaps * on_rtpbin_request_pt_map(GstElement *rtpbin, guint session_id, 
     return caps;
 }
 
-#ifdef RTX_ENABLED
 static GstElement * create_aux_bin(gchar *prefix, GstElement *rtx, guint session_id)
 {
     GstElement *bin;
@@ -2229,11 +2227,9 @@ static GstElement * create_aux_bin(gchar *prefix, GstElement *rtx, guint session
 
     return bin;
 }
-#endif
 
 static GstElement * on_rtpbin_request_aux_sender(G_GNUC_UNUSED GstElement *rtpbin, guint session_id, OwrTransportAgent *transport_agent)
 {
-#ifdef RTX_ENABLED
     OwrMediaSession *media_session;
     OwrPayload *payload;
     GstElement *rtxsend;
@@ -2275,17 +2271,11 @@ static GstElement * on_rtpbin_request_aux_sender(G_GNUC_UNUSED GstElement *rtpbi
     return create_aux_bin("rtprtxsend", rtxsend, session_id);
 
 no_retransmission:
-#else
-    OWR_UNUSED(rtpbin);
-    OWR_UNUSED(session_id);
-    OWR_UNUSED(transport_agent);
-#endif
     return NULL;
 }
 
 static GstElement * on_rtpbin_request_aux_receiver(G_GNUC_UNUSED GstElement *rtpbin, G_GNUC_UNUSED guint session_id, OwrTransportAgent *transport_agent)
 {
-#ifdef RTX_ENABLED
     OwrMediaSession *media_session;
     GstElement *rtxrecv;
     GstStructure *pt_map;
@@ -2309,11 +2299,6 @@ static GstElement * on_rtpbin_request_aux_receiver(G_GNUC_UNUSED GstElement *rtp
     return create_aux_bin("rtprtxrecv", rtxrecv, session_id);
 
 no_retransmission:
-#else
-    OWR_UNUSED(rtpbin);
-    OWR_UNUSED(session_id);
-    OWR_UNUSED(transport_agent);
-#endif
     return NULL;
 }
 
@@ -2570,10 +2555,8 @@ static void on_new_jitterbuffer(G_GNUC_UNUSED GstElement *rtpbin, GstElement *ji
     media_session = OWR_MEDIA_SESSION(get_session(transport_agent, session_id));
     g_return_if_fail(OWR_IS_MEDIA_SESSION(media_session));
 
-#ifdef RTX_ENABLED
     if (_owr_media_session_want_receive_rtx(media_session))
         g_object_set(jitterbuffer, "do-retransmission", TRUE, NULL);
-#endif
 
     g_object_bind_property(media_session, "jitter-buffer-latency", jitterbuffer,
         "latency", G_BINDING_SYNC_CREATE);
