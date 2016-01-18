@@ -1,7 +1,5 @@
 /*
  * Copyright (c) 2014-2015, Ericsson AB. All rights reserved.
- * Copyright (c) 2014, Centricular Ltd
- *     Author: Sebastian Dröge <sebastian@centricular.com>
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -25,27 +23,26 @@
  * OF SUCH DAMAGE.
  */
 
-#ifndef __OWR_CANDIDATE_PRIVATE_H__
-#define __OWR_CANDIDATE_PRIVATE_H__
+#include "owr.h"
+#include "owr_crypto_utils.h"
 
-#include "owr_candidate.h"
+static void got_crypto_data(gchar *privatekey, gchar *certificate, gchar *fingerprint,
+    gchar *fingerprint_function, gpointer data)
+{
+    g_print("got got_crypto_data \n");
+    g_print("privatekey %s \n", privatekey);
+    g_print("certificate %s \n", certificate);
+    g_print("fingerprint %s \n", fingerprint);
+    g_print("fingerprint_function %s \n", fingerprint_function);
 
-#include <agent.h>
+    owr_quit();
+}
 
-#ifndef __GTK_DOC_IGNORE__
+int main() {
+    owr_init(NULL);
 
-#define OWR_COMPONENT_MAX (OWR_COMPONENT_TYPE_RTCP + 1)
+    owr_crypto_create_crypto_data(got_crypto_data, NULL);
+    owr_run();
 
-G_BEGIN_DECLS
-
-/*< private >*/
-OwrCandidate * _owr_candidate_new_from_nice_candidate(NiceCandidate *nice_candidate);
-
-NiceCandidate * _owr_candidate_to_nice_candidate(OwrCandidate *candidate);
-OwrComponentType _owr_candidate_get_component_type(OwrCandidate *candidate);
-
-G_END_DECLS
-
-#endif /* __GTK_DOC_IGNORE__ */
-
-#endif /* __OWR_CANDIDATE_PRIVATE_H__ */
+    return 0;
+}

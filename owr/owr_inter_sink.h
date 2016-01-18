@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2014-2015, Ericsson AB. All rights reserved.
- * Copyright (c) 2014, Centricular Ltd
+ * Copyright (C) 2015 Centricular Ltd.
  *     Author: Sebastian Dröge <sebastian@centricular.com>
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -25,27 +24,41 @@
  * OF SUCH DAMAGE.
  */
 
-#ifndef __OWR_CANDIDATE_PRIVATE_H__
-#define __OWR_CANDIDATE_PRIVATE_H__
+#ifndef __OWR_INTER_SINK_H__
+#define __OWR_INTER_SINK_H__
 
-#include "owr_candidate.h"
-
-#include <agent.h>
+#include <gst/gst.h>
 
 #ifndef __GTK_DOC_IGNORE__
 
-#define OWR_COMPONENT_MAX (OWR_COMPONENT_TYPE_RTCP + 1)
-
 G_BEGIN_DECLS
 
-/*< private >*/
-OwrCandidate * _owr_candidate_new_from_nice_candidate(NiceCandidate *nice_candidate);
+#define OWR_TYPE_INTER_SINK            (_owr_inter_sink_get_type())
+#define OWR_INTER_SINK(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj), OWR_TYPE_INTER_SINK, OwrInterSink))
+#define OWR_IS_INTER_SINK(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj), OWR_TYPE_INTER_SINK))
+#define OWR_INTER_SINK_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST((klass) , OWR_TYPE_INTER_SINK, OwrInterSinkClass))
+#define OWR_IS_INTER_SINK_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass) , OWR_TYPE_INTER_SINK))
+#define OWR_INTER_SINK_GET_CLASS(obj)  (G_TYPE_INSTANCE_GET_CLASS((obj) , OWR_TYPE_INTER_SINK, OwrInterSinkClass))
 
-NiceCandidate * _owr_candidate_to_nice_candidate(OwrCandidate *candidate);
-OwrComponentType _owr_candidate_get_component_type(OwrCandidate *candidate);
+typedef struct _OwrInterSink      OwrInterSink;
+typedef struct _OwrInterSinkClass OwrInterSinkClass;
+
+struct _OwrInterSink {
+    GstElement parent;
+
+    GstPad *sinkpad;
+    GWeakRef src_srcpad;
+    gboolean pending_sticky_events;
+};
+
+struct _OwrInterSinkClass {
+    GstElementClass parent_class;
+};
+
+GType _owr_inter_sink_get_type(void);
 
 G_END_DECLS
 
 #endif /* __GTK_DOC_IGNORE__ */
 
-#endif /* __OWR_CANDIDATE_PRIVATE_H__ */
+#endif /* __OWR_INTER_SINK_H__ */

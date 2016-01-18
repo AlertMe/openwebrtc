@@ -25,27 +25,25 @@
  * OF SUCH DAMAGE.
  */
 
-#ifndef __OWR_CANDIDATE_PRIVATE_H__
-#define __OWR_CANDIDATE_PRIVATE_H__
+/*/
+\*\ OwrURISource private
+/*/
 
-#include "owr_candidate.h"
+#ifndef __OWR_URI_SOURCE_PRIVATE_H__
+#define __OWR_URI_SOURCE_PRIVATE_H__
 
-#include <agent.h>
+#include "owr_media_source.h"
+#include "owr_types.h"
 
 #ifndef __GTK_DOC_IGNORE__
 
-#define OWR_COMPONENT_MAX (OWR_COMPONENT_TYPE_RTCP + 1)
-
 G_BEGIN_DECLS
 
-/*< private >*/
-OwrCandidate * _owr_candidate_new_from_nice_candidate(NiceCandidate *nice_candidate);
-
-NiceCandidate * _owr_candidate_to_nice_candidate(OwrCandidate *candidate);
-OwrComponentType _owr_candidate_get_component_type(OwrCandidate *candidate);
+OwrMediaSource *_owr_uri_source_new(OwrMediaType media_type,
+    guint stream_id, OwrCodecType codec_type, gpointer uridecodebin);
 
 G_END_DECLS
 
 #endif /* __GTK_DOC_IGNORE__ */
 
-#endif /* __OWR_CANDIDATE_PRIVATE_H__ */
+#endif /* __OWR_URI_SOURCE_PRIVATE_H__ */

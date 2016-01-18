@@ -61,7 +61,6 @@ int main() {
     owr_init(NULL);
 
     owr_get_capture_sources(OWR_MEDIA_TYPE_AUDIO|OWR_MEDIA_TYPE_VIDEO, got_sources, NULL);
-
     owr_run();
 
     return 0;

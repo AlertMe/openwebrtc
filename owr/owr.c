@@ -62,6 +62,9 @@ static gboolean owr_initialized = FALSE;
 static GMainContext *owr_main_context = NULL;
 static GMainLoop *owr_main_loop = NULL;
 
+G_LOCK_DEFINE_STATIC(base_time);
+static GstClockTime owr_base_time = GST_CLOCK_TIME_NONE;
+
 GST_DEBUG_CATEGORY(_owraudiopayload_debug);
 GST_DEBUG_CATEGORY(_owraudiorenderer_debug);
 GST_DEBUG_CATEGORY(_owrbridge_debug);
@@ -69,6 +72,7 @@ GST_DEBUG_CATEGORY(_owrbus_debug);
 GST_DEBUG_CATEGORY(_owrcandidate_debug);
 GST_DEBUG_CATEGORY(_owrdatachannel_debug);
 GST_DEBUG_CATEGORY(_owrdatasession_debug);
+GST_DEBUG_CATEGORY(_owrcrypto_debug);
 GST_DEBUG_CATEGORY(_owrdevicelist_debug);
 GST_DEBUG_CATEGORY(_owrimagerenderer_debug);
 GST_DEBUG_CATEGORY(_owrimageserver_debug);
@@ -93,7 +97,6 @@ GST_PLUGIN_STATIC_DECLARE(audioresample);
 GST_PLUGIN_STATIC_DECLARE(audiotestsrc);
 GST_PLUGIN_STATIC_DECLARE(coreelements);
 GST_PLUGIN_STATIC_DECLARE(dtls);
-GST_PLUGIN_STATIC_DECLARE(inter);
 GST_PLUGIN_STATIC_DECLARE(mulaw);
 GST_PLUGIN_STATIC_DECLARE(nice);
 GST_PLUGIN_STATIC_DECLARE(opengl);
@@ -101,6 +104,7 @@ GST_PLUGIN_STATIC_DECLARE(openh264);
 GST_PLUGIN_STATIC_DECLARE(opus);
 GST_PLUGIN_STATIC_DECLARE(rtp);
 GST_PLUGIN_STATIC_DECLARE(rtpmanager);
+GST_PLUGIN_STATIC_DECLARE(scream);
 GST_PLUGIN_STATIC_DECLARE(sctp);
 GST_PLUGIN_STATIC_DECLARE(srtp);
 GST_PLUGIN_STATIC_DECLARE(videoconvert);
@@ -222,6 +226,8 @@ void owr_init(GMainContext *main_context)
         "OpenWebRTC Bus");
     GST_DEBUG_CATEGORY_INIT(_owrcandidate_debug, "owrcandidate", 0,
         "OpenWebRTC Candidate");
+    GST_DEBUG_CATEGORY_INIT(_owrcrypto_debug, "owrcrypto", 0,
+        "OpenWebRTC Cryptography");
     GST_DEBUG_CATEGORY_INIT(_owrdatachannel_debug, "owrdatachannel", 0,
         "OpenWebRTC Data Channel");
     GST_DEBUG_CATEGORY_INIT(_owrdatasession_debug, "owrdatasession", 0,
@@ -265,7 +271,6 @@ void owr_init(GMainContext *main_context)
     GST_PLUGIN_STATIC_REGISTER(audiotestsrc);
     GST_PLUGIN_STATIC_REGISTER(coreelements);
     GST_PLUGIN_STATIC_REGISTER(dtls);
-    GST_PLUGIN_STATIC_REGISTER(inter);
     GST_PLUGIN_STATIC_REGISTER(mulaw);
     GST_PLUGIN_STATIC_REGISTER(nice);
     GST_PLUGIN_STATIC_REGISTER(opengl);
@@ -273,6 +278,7 @@ void owr_init(GMainContext *main_context)
     GST_PLUGIN_STATIC_REGISTER(opus);
     GST_PLUGIN_STATIC_REGISTER(rtp);
     GST_PLUGIN_STATIC_REGISTER(rtpmanager);
+    GST_PLUGIN_STATIC_REGISTER(scream);
     GST_PLUGIN_STATIC_REGISTER(sctp);
     GST_PLUGIN_STATIC_REGISTER(srtp);
     GST_PLUGIN_STATIC_REGISTER(videoconvert);
@@ -394,6 +400,20 @@ gboolean _owr_is_initialized()
 GMainContext * _owr_get_main_context()
 {
     return owr_main_context;
+}
+
+GstClockTime _owr_get_base_time()
+{
+    G_LOCK(base_time);
+    if (!GST_CLOCK_TIME_IS_VALID(owr_base_time)) {
+        GstClock *clock = gst_system_clock_obtain();
+
+        owr_base_time = gst_clock_get_time(clock);
+        gst_object_unref(clock);
+    }
+    G_UNLOCK(base_time);
+
+    return owr_base_time;
 }
 
 void _owr_schedule_with_user_data(GSourceFunc func, gpointer user_data)

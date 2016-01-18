@@ -46,12 +46,15 @@ if (typeof(SDP) == "undefined")
         "nack": "^a=rtcp-fb:${type} nack$",
         "nackpli": "^a=rtcp-fb:${type} nack pli$",
         "ccmfir": "^a=rtcp-fb:${type} ccm fir$",
+        "ericscream": "^a=rtcp-fb:${type} ericscream$",
         "rtcp": "^a=rtcp:([\\d]+)( IN (IP[46]) ([\\d\\.a-f\\:]+))?.*$",
         "rtcpmux": "^a=rtcp-mux.*$",
-        "cname": "^a=ssrc:(\\d+) cname:([\\w+/\\-@\\.]+).*$",
+        "cname": "^a=ssrc:(\\d+) cname:([\\w+/\\-@\\.\\{\\}]+).*$",
         "msid": "^a=(ssrc:\\d+ )?msid:([\\w+/\\-=]+) +([\\w+/\\-=]+).*$",
         "ufrag": "^a=ice-ufrag:([\\w+/]*).*$",
         "pwd": "^a=ice-pwd:([\\w+/]*).*$",
+        "iceoptions": "^a=ice-options:(.*$)",
+        "trickle": "\\btrickle\\b.*$",
         "candidate": "^a=candidate:(\\d+) (\\d) (UDP|TCP) ([\\d\\.]*) ([\\d\\.a-f\\:]*) (\\d*)" +
             " typ ([a-z]*)( raddr ([\\d\\.a-f\\:]*) rport (\\d*))?" +
             "( tcptype (active|passive|so))?.*$",
@@ -81,9 +84,11 @@ if (typeof(SDP) == "undefined")
             "${nackLines}" +
             "${nackpliLines}" +
             "${ccmfirLines}" +
+            "${ericScreamLines}" +
             "${cnameLines}" +
             "${msidLines}" +
             "${iceCredentialLines}" +
+            "${iceOptionLine}" +
             "${candidateLines}" +
             "${dtlsFingerprintLine}" +
             "${dtlsSetupLine}" +
@@ -97,13 +102,17 @@ if (typeof(SDP) == "undefined")
         "nack": "a=rtcp-fb:${type} nack\r\n",
         "nackpli": "a=rtcp-fb:${type} nack pli\r\n",
         "ccmfir": "a=rtcp-fb:${type} ccm fir\r\n",
+        "ericscream": "a=rtcp-fb:${type} ericscream\r\n",
 
         "cname": "a=ssrc:${ssrc} cname:${cname}\r\n",
-        "msid": "a=${[ssrc:]ssrc[ ]}msid:${mediaStreamId} ${mediaStreamTrackId}\r\n",
+        "msid": "a=msid:${mediaStreamId} ${mediaStreamTrackId}\r\n",
 
         "iceCredentials":
             "a=ice-ufrag:${ufrag}\r\n" +
             "a=ice-pwd:${password}\r\n",
+
+        "iceOptionsTrickle":
+            "a=ice-options:trickle\r\n",
 
         "candidate":
             "a=candidate:${foundation} ${componentId} ${transport} ${priority} ${address} ${port}" +
@@ -179,7 +188,7 @@ if (typeof(SDP) == "undefined")
         for (var i = 0; i < parts.length; i += 5) {
             var mediaDescription = {
                 "type": parts[i],
-                "port": parts[i + 1],
+                "port": parseInt(parts[i + 1]),
                 "protocol": parts[i + 2],
             };
             var fmt = parts[i + 3].replace(/^[\s\uFEFF\xA0]+/, '')
@@ -200,7 +209,7 @@ if (typeof(SDP) == "undefined")
                 mediaDescription.mode = mode[1];
 
             var payloadTypes = [];
-            if (match(mediaDescription.protocol, "RTP/S?AVPF?")) {
+            if (match(mediaDescription.protocol, "(UDP/TLS)?RTP/S?AVPF?")) {
                 mediaDescription.payloads = [];
                 payloadTypes = fmt;
             }
@@ -220,6 +229,8 @@ if (typeof(SDP) == "undefined")
                         payload.nackpli = !!match(mblock, nackpliLine, "m");
                         var ccmfirLine = fillTemplate(regexps.ccmfir, payload);
                         payload.ccmfir = !!match(mblock, ccmfirLine, "m");
+                        var ericScreamLine = fillTemplate(regexps.ericscream, payload);
+                        payload.ericscream = !!match(mblock, ericScreamLine, "m");
                     }
                 } else if (payloadType == 0 || payloadType == 8) {
                     payload.encodingName = payloadType == 8 ? "PCMA" : "PCMU";
@@ -283,13 +294,30 @@ if (typeof(SDP) == "undefined")
             if (ufrag && pwd) {
                 mediaDescription.ice = {
                     "ufrag": ufrag[1],
-                    "password": pwd[1]
+                    "password": pwd[1],
+                    "iceOptions": {}
                 };
+            }
+            var iceOptions = match(mblock, regexps.iceoptions, "m", sblock);
+            if (iceOptions) {
+                var canTrickle = match(iceOptions[1], regexps.trickle);
+                if (canTrickle) {
+                    if (!mediaDescription.ice) {
+                        mediaDescription.ice = {
+                            "iceOptions": {}
+                        };
+                    }
+                    mediaDescription.ice.iceOptions = {
+                        "trickle": true
+                    };
+                }
             }
             var candidateLines = match(mblock, regexps.candidate, "mig");
             if (candidateLines) {
                 if (!mediaDescription.ice)
-                    mediaDescription.ice = {};
+                    mediaDescription.ice = {
+                        "iceOptions": {}
+                    };
                 mediaDescription.ice.candidates = [];
                 candidateLines.forEach(function (line) {
                     var candidateLine = match(line, regexps.candidate, "mi");
@@ -382,15 +410,15 @@ if (typeof(SDP) == "undefined")
                 mediaStreamIds.push(mdesc.mediaStreamId);
         });
         if (mediaStreamIds.length) {
-            var msidsemanticLine = fillTemplate(templates.msidsemantic,
+            msidsemanticLine = fillTemplate(templates.msidsemantic,
                 { "mediaStreamIds": mediaStreamIds.join(" ") });
         }
         sdpText = fillTemplate(sdpText, { "msidsemanticLine": msidsemanticLine });
 
         sdpObj.mediaDescriptions.forEach(function (mediaDescription) {
             addDefaults(mediaDescription, {
-                "port": 1,
-                "protocol": "RTP/SAVPF",
+                "port": 9,
+                "protocol": "UDP/TLS/RTP/SAVPF",
                 "netType": "IN",
                 "addressType": "IP4",
                 "address": "0.0.0.0",
@@ -401,7 +429,7 @@ if (typeof(SDP) == "undefined")
             var mblock = fillTemplate(templates.mblock, mediaDescription);
 
             var payloadInfo = {"rtpMapLines": "", "fmtpLines": "", "nackLines": "",
-                "nackpliLines": "", "ccmfirLines": ""};
+                "nackpliLines": "", "ccmfirLines": "", "ericScreamLines": ""};
             mediaDescription.payloads.forEach(function (payload) {
                 if (payloadInfo.fmt)
                     payloadInfo.fmt += " " + payload.type;
@@ -428,6 +456,8 @@ if (typeof(SDP) == "undefined")
                     payloadInfo.nackpliLines += fillTemplate(templates.nackpli, payload);
                 if (payload.ccmfir)
                     payloadInfo.ccmfirLines += fillTemplate(templates.ccmfir, payload);
+                if (payload.ericscream)
+                    payloadInfo.ericScreamLines += fillTemplate(templates.ericscream, payload);
             });
             mblock = fillTemplate(mblock, payloadInfo);
 
@@ -465,10 +495,12 @@ if (typeof(SDP) == "undefined")
             }
             mblock = fillTemplate(mblock, srcAttributeLines);
 
-            var iceInfo = {"iceCredentialLines": "", "candidateLines": ""};
+            var iceInfo = {"iceCredentialLines": "", "iceOptionLine": "", "candidateLines": ""};
             if (mediaDescription.ice) {
                 iceInfo.iceCredentialLines = fillTemplate(templates.iceCredentials,
                     mediaDescription.ice);
+                if (mediaDescription.ice.iceOptions.trickle)
+                    iceInfo.iceOptionLine = templates.iceOptionsTrickle;
                 if (mediaDescription.ice.candidates) {
                     mediaDescription.ice.candidates.forEach(function (candidate) {
                         addDefaults(candidate, {

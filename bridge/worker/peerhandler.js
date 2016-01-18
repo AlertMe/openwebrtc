@@ -28,7 +28,7 @@
 
 "use strict";
 
-function PeerHandler(configuration, client, jsonRpc) {
+function PeerHandler(configuration, keyCert, client, jsonRpc) {
     var transportAgent;
     var sessions = [];
     var numberOfReceivePreparedSessions = 0;
@@ -89,6 +89,10 @@ function PeerHandler(configuration, client, jsonRpc) {
                     client.gotDtlsFingerprint(mdescIndex, dtlsInfo);
                 });
             });
+
+            session.dtls_certificate = keyCert.certificate;
+
+            session.dtls_key = keyCert.key;
 
             session.signal.on_new_candidate.connect(function (m, candidate) {
                 var cand = {
@@ -240,13 +244,16 @@ function PeerHandler(configuration, client, jsonRpc) {
             if (!mdesc.source || !payload)
                 continue;
 
+            var adapt = payload.ericscream ? owr.AdaptationType.SCREAM :
+                owr.AdaptationType.DISABLED;
             var rtxPayload = findRtxPayload(mdesc.payloads, payload.type);
             var sendPayload = (mdesc.type == "audio") ?
                 new owr.AudioPayload({
                     "payload_type": payload.type,
                     "codec_type": owr.CodecType[payload.encodingName.toUpperCase()],
                     "clock_rate": payload.clockRate,
-                    "channels": payload.channels
+                    "channels": payload.channels,
+                    "adaptation": adapt
                 }) :
                 new owr.VideoPayload({
                     "payload_type": payload.type,
@@ -254,6 +261,7 @@ function PeerHandler(configuration, client, jsonRpc) {
                     "clock_rate": payload.clockRate,
                     "ccm_fir": !!payload.ccmfir,
                     "nack_pli": !!payload.nackpli,
+                    "adaptation": adapt,
                     "rtx_payload_type": rtxPayload ? rtxPayload.type : -1,
                     "rtx_time": rtxPayload && rtxPayload.parameters.rtxTime || 0
                 });

@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2014-2015, Ericsson AB. All rights reserved.
- * Copyright (c) 2014, Centricular Ltd
- *     Author: Sebastian Dröge <sebastian@centricular.com>
+ * Copyright (c) 2015, Ericsson AB. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -25,27 +23,33 @@
  * OF SUCH DAMAGE.
  */
 
-#ifndef __OWR_CANDIDATE_PRIVATE_H__
-#define __OWR_CANDIDATE_PRIVATE_H__
+#ifndef __OWR_CRYPTO_UTILS_H__
+#define __OWR_CRYPTO_UTILS_H__
 
-#include "owr_candidate.h"
+#include "owr_types.h"
 
-#include <agent.h>
+#include <glib.h>
+
+#include <openssl/ssl.h>
+#include <openssl/evp.h>
+#include <openssl/rsa.h>
 
 #ifndef __GTK_DOC_IGNORE__
 
-#define OWR_COMPONENT_MAX (OWR_COMPONENT_TYPE_RTCP + 1)
-
 G_BEGIN_DECLS
 
-/*< private >*/
-OwrCandidate * _owr_candidate_new_from_nice_candidate(NiceCandidate *nice_candidate);
+typedef void (*OwrCryptoDataCallback) (gchar *privatekey, gchar *certificate, gchar *fingerprint,
+    gchar *fingerprint_function, gpointer data);
 
-NiceCandidate * _owr_candidate_to_nice_candidate(OwrCandidate *candidate);
-OwrComponentType _owr_candidate_get_component_type(OwrCandidate *candidate);
+void owr_crypto_create_crypto_data(OwrCryptoDataCallback callback, gpointer data);
+/*< private >*/
+
+gpointer _create_crypto_worker_run(gpointer data);
+
+gboolean _create_crypto_worker_report(gpointer data);
 
 G_END_DECLS
 
 #endif /* __GTK_DOC_IGNORE__ */
 
-#endif /* __OWR_CANDIDATE_PRIVATE_H__ */
+#endif /* __OWR_CRYPTO_UTILS_H__ */
