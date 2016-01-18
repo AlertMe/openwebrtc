@@ -70,6 +70,7 @@ struct _OwrTransportAgentClass {
 GType owr_transport_agent_get_type(void) G_GNUC_CONST;
 
 OwrTransportAgent * owr_transport_agent_new(gboolean ice_controlling_mode);
+OwrTransportAgent * owr_transport_agent_new_with_ice_compat(gboolean ice_controlling_mode, gint nice_compatability);
 void owr_transport_agent_add_helper_server(OwrTransportAgent *transport_agent, OwrHelperServerType type,
     const gchar *address, guint port, const gchar *username, const gchar *password);
 void owr_transport_agent_add_local_address(OwrTransportAgent *transport_agent, const gchar *local_address);

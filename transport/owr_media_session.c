@@ -85,7 +85,9 @@ enum {
     LAST_SIGNAL
 };
 
-#define DEFAULT_RTCP_MUX FALSE
+// Default values
+#define DEFAULT_RTCP_MUX                FALSE
+#define DEFAULT_JITTER_BUFFER_LATENCY   1000  // [ms]
 
 enum {
     PROP_0,
@@ -301,7 +303,7 @@ static void owr_media_session_class_init(OwrMediaSessionClass *klass)
     obj_properties[PROP_JITTER_BUFFER_LATENCY] = g_param_spec_uint("jitter-buffer-latency",
         "Session jitter buffer latency in ms",
         "The latency introduced by the jitter buffer for this session in ms",
-        0, G_MAXUINT, 50,
+        0, G_MAXUINT, DEFAULT_JITTER_BUFFER_LATENCY,
         G_PARAM_STATIC_STRINGS | G_PARAM_READWRITE);
 
     g_object_class_install_properties(gobject_class, N_PROPERTIES, obj_properties);
@@ -324,7 +326,7 @@ static void owr_media_session_init(OwrMediaSession *media_session)
     priv->on_send_payload = NULL;
     priv->on_send_source = NULL;
     priv->remote_sources = NULL;
-    priv->jitter_buffer_latency = 50;
+    priv->jitter_buffer_latency = DEFAULT_JITTER_BUFFER_LATENCY;
     g_mutex_init(&priv->remote_source_lock);
     g_rw_lock_init(&priv->rw_lock);
 }
