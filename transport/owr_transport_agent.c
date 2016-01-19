@@ -458,17 +458,17 @@ static void owr_transport_agent_init(OwrTransportAgent *transport_agent)
     g_return_if_fail(_owr_is_initialized());
 
 
-    priv->nice_agent = nice_agent_new(_owr_get_main_context(), NICE_COMPATIBILITY_RFC5245);
-    g_object_bind_property(transport_agent, "ice-controlling-mode", priv->nice_agent,
-        "controlling-mode", G_BINDING_SYNC_CREATE);
-    g_signal_connect(G_OBJECT(priv->nice_agent), "new-candidate-full",
-        G_CALLBACK(on_new_candidate), transport_agent);
-    g_signal_connect(G_OBJECT(priv->nice_agent), "candidate-gathering-done",
-        G_CALLBACK(on_candidate_gathering_done), transport_agent);
-    g_signal_connect(G_OBJECT(priv->nice_agent), "component-state-changed",
-        G_CALLBACK(on_component_state_changed), transport_agent);
-    g_signal_connect(G_OBJECT(priv->nice_agent), "new-selected-pair-full",
-        G_CALLBACK(on_new_selected_pair), transport_agent);
+    // priv->nice_agent = nice_agent_new(_owr_get_main_context(), NICE_COMPATIBILITY_RFC5245);
+    // g_object_bind_property(transport_agent, "ice-controlling-mode", priv->nice_agent,
+    //     "controlling-mode", G_BINDING_SYNC_CREATE);
+    // g_signal_connect(G_OBJECT(priv->nice_agent), "new-candidate-full",
+    //     G_CALLBACK(on_new_candidate), transport_agent);
+    // g_signal_connect(G_OBJECT(priv->nice_agent), "candidate-gathering-done",
+    //     G_CALLBACK(on_candidate_gathering_done), transport_agent);
+    // g_signal_connect(G_OBJECT(priv->nice_agent), "component-state-changed",
+    //     G_CALLBACK(on_component_state_changed), transport_agent);
+    // g_signal_connect(G_OBJECT(priv->nice_agent), "new-selected-pair-full",
+    //     G_CALLBACK(on_new_selected_pair), transport_agent);
 
     pipeline_name = g_strdup_printf("transport-agent-%u", priv->agent_id);
     priv->pipeline = gst_pipeline_new(pipeline_name);
