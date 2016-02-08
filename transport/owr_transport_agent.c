@@ -547,6 +547,7 @@ static void owr_transport_agent_set_property(GObject *object, guint property_id,
 	  g_signal_connect(G_OBJECT(priv->nice_agent), "new-candidate-full", G_CALLBACK(on_new_candidate), transport_agent);
 	  g_signal_connect(G_OBJECT(priv->nice_agent), "candidate-gathering-done", G_CALLBACK(on_candidate_gathering_done), transport_agent);
 	  g_signal_connect(G_OBJECT(priv->nice_agent), "component-state-changed", G_CALLBACK(on_component_state_changed), transport_agent);
+      g_signal_connect(G_OBJECT(priv->nice_agent), "new-selected-pair-full", G_CALLBACK(on_new_selected_pair), transport_agent);
         }
         break;
     default:
