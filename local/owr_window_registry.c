@@ -288,6 +288,8 @@ void _owr_window_registry_unregister_renderer(OwrWindowRegistry *window_registry
     g_return_if_fail(data);
     g_return_if_fail(data->renderer == video_renderer);
 
+    g_object_unref(data->renderer);
+    
     data->renderer = NULL;
     if (!data->window_handle_set)
         g_hash_table_remove(priv->registry_hash_table, tag);

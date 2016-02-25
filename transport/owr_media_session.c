@@ -52,6 +52,7 @@
 #include "owr_session_private.h"
 
 #include <string.h>
+#include <stdio.h>
 
 GST_DEBUG_CATEGORY_EXTERN(_owrmediasession_debug);
 #define GST_CAT_DEFAULT _owrmediasession_debug
@@ -211,6 +212,8 @@ static void owr_media_session_finalize(GObject *object)
     OwrMediaSession *media_session = OWR_MEDIA_SESSION(object);
     OwrMediaSessionPrivate *priv = media_session->priv;
 
+    printf("OWR_MEDIA_SESSION_FINALIZE\n");
+
     _owr_media_session_clear_closures(media_session);
 
     if (priv->incoming_srtp_key)
@@ -364,6 +367,8 @@ void owr_media_session_add_receive_payload(OwrMediaSession *media_session, OwrPa
     g_hash_table_insert(args, "payload", payload);
 
     g_object_ref(media_session);
+    // printf("REF MEDIA SESSION owr_media_session_add_receive_payload: %d, %p\n", media_session->parent_instance.parent_instance.ref_count, media_session);
+
     _owr_schedule_with_hash_table((GSourceFunc)add_receive_payload, args);
 }
 
@@ -385,6 +390,8 @@ void owr_media_session_set_send_payload(OwrMediaSession *media_session, OwrPaylo
     g_hash_table_insert(args, "media_session", media_session);
     g_hash_table_insert(args, "payload", payload);
     g_object_ref(media_session);
+    // printf("REF MEDIA SESSION owr_media_session_set_send_payload: %d, %p\n", media_session->parent_instance.parent_instance.ref_count, media_session);
+
 
     _owr_schedule_with_hash_table((GSourceFunc)set_send_payload, args);
 }
@@ -407,6 +414,7 @@ void owr_media_session_set_send_source(OwrMediaSession *media_session, OwrMediaS
     g_hash_table_insert(args, "media_session", media_session);
     g_hash_table_insert(args, "source", source);
     g_object_ref(media_session);
+    // printf("REF MEDIA SESSION owr_media_session_set_send_source: %d, %p\n", media_session->parent_instance.parent_instance.ref_count, media_session);
     if (source)
         g_object_ref(source);
 
@@ -457,6 +465,7 @@ static gboolean add_receive_payload(GHashTable *args)
 
     g_object_unref(payload);
     g_object_unref(media_session);
+    printf("UNREF MEDIA SESSION add_receive_payload: %d, %p\n", media_session->parent_instance.parent_instance.ref_count, media_session);
     g_hash_table_unref(args);
     return FALSE;
 }
@@ -500,6 +509,7 @@ static gboolean set_send_payload(GHashTable *args)
     }
 
     g_object_unref(media_session);
+    printf("UNREF MEDIA SESSION set_send_payload: %d, %p\n", media_session->parent_instance.parent_instance.ref_count, media_session);
     g_hash_table_unref(args);
     return FALSE;
 }
@@ -544,6 +554,7 @@ static gboolean set_send_source(GHashTable *args)
     }
 
     g_object_unref(media_session);
+    printf("UNREF MEDIA SESSION set_send_source: %d, %p\n", media_session->parent_instance.parent_instance.ref_count, media_session);
     g_hash_table_unref(args);
 
     return FALSE;

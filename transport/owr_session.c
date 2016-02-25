@@ -391,7 +391,7 @@ static void schedule_add_remote_candidate(OwrSession *session, OwrCandidate *can
     g_hash_table_insert(args, "session", session);
     g_hash_table_insert(args, "candidate", candidate);
     g_hash_table_insert(args, "forced", GINT_TO_POINTER(f));
-    g_object_ref(session);
+    // g_object_ref(session);
     g_object_ref(candidate);
 
     _owr_schedule_with_hash_table((GSourceFunc)add_remote_candidate, args);
@@ -447,7 +447,7 @@ void owr_session_force_candidate_pair(OwrSession *session, OwrComponentType ctyp
     g_hash_table_insert(args, "component-type", GUINT_TO_POINTER(ctype));
     g_hash_table_insert(args, "local-candidate", local_candidate);
     g_hash_table_insert(args, "remote-candidate", remote_candidate);
-    g_object_ref(session);
+    // g_object_ref(session);
     g_object_ref(local_candidate);
     g_object_ref(remote_candidate);
 

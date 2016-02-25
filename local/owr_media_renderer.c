@@ -419,7 +419,7 @@ void owr_media_renderer_set_source(OwrMediaRenderer *renderer, OwrMediaSource *s
     g_hash_table_insert(args, "renderer", renderer);
     g_hash_table_insert(args, "source", source);
 
-    g_object_ref(renderer);
+    // g_object_ref(renderer);
     if (source)
         g_object_ref(source);
 

@@ -292,11 +292,18 @@ static void owr_transport_agent_finalize(GObject *object)
 
     g_return_if_fail(_owr_is_initialized());
 
+    printf("FINALIZE owr_transport_agent_finalize\n");
+
     transport_agent = OWR_TRANSPORT_AGENT(object);
     priv = transport_agent->priv;
 
-    gst_element_set_state(priv->pipeline, GST_STATE_NULL);
-    gst_object_unref(priv->pipeline);
+    g_object_unref(priv->nice_agent);
+    g_object_unref(priv->nice_agent);
+    g_object_unref(priv->nice_agent);
+    g_object_unref(priv->nice_agent);
+    g_object_unref(priv->nice_agent);
+
+
 
     sessions_list = g_hash_table_get_values(priv->sessions);
     for (item = sessions_list; item; item = item->next) {
@@ -308,14 +315,15 @@ static void owr_transport_agent_finalize(GObject *object)
     }
     g_list_free(sessions_list);
 
+    gst_element_set_state(priv->pipeline, GST_STATE_PAUSED);
+    gst_object_unref(priv->pipeline);
+
     g_hash_table_destroy(priv->sessions);
     g_hash_table_destroy(priv->pending_sessions);
     g_mutex_clear(&priv->sessions_lock);
 
     g_hash_table_destroy(priv->data_channels);
     g_rw_lock_clear(&priv->data_channels_rw_mutex);
-
-    g_object_unref(priv->nice_agent);
 
     g_free(priv->transport_bin_name);
 
@@ -622,7 +630,7 @@ void owr_transport_agent_add_helper_server(OwrTransportAgent *transport_agent,
     if (password)
         g_hash_table_insert(helper_server_info, "password", g_strdup(password));
 
-    g_object_ref(transport_agent);
+    // g_object_ref(transport_agent);
     resolver = g_resolver_get_default();
     g_main_context_push_thread_default(_owr_get_main_context());
     g_resolver_lookup_by_name_async(resolver, address, NULL,
@@ -946,38 +954,40 @@ static void remove_existing_send_source_and_payload(OwrTransportAgent *transport
     else
         pad_name = g_strdup_printf("audio_raw_sink_%u", stream_id);
     sinkpad = gst_element_get_static_pad(transport_agent->priv->transport_bin, pad_name);
-    g_assert(sinkpad);
-    g_free(pad_name);
+    if (sinkpad != NULL) {
+        g_assert(sinkpad);
+        g_free(pad_name);
 
-    bin_src_pad = gst_pad_get_peer(sinkpad);
-    g_assert(bin_src_pad);
-    source_bin = GST_ELEMENT(gst_pad_get_parent(bin_src_pad));
-    g_assert(source_bin);
+        bin_src_pad = gst_pad_get_peer(sinkpad);
+        g_assert(bin_src_pad);
+        source_bin = GST_ELEMENT(gst_pad_get_parent(bin_src_pad));
+        g_assert(source_bin);
 
-    /* Shutting down will flush immediately */
-    _owr_media_source_release_source(media_source, source_bin);
-    gst_element_set_state(source_bin, GST_STATE_NULL);
-    gst_bin_remove(GST_BIN(transport_agent->priv->pipeline), source_bin);
-    gst_object_unref(bin_src_pad);
-    gst_object_unref(source_bin);
+        /* Shutting down will flush immediately */
+        _owr_media_source_release_source(media_source, source_bin);
+        gst_element_set_state(source_bin, GST_STATE_NULL);
+        gst_bin_remove(GST_BIN(transport_agent->priv->pipeline), source_bin);
+        gst_object_unref(bin_src_pad);
+        gst_object_unref(source_bin);
 
-    /* Now the payload bin */
-    bin_name = g_strdup_printf("send-input-bin-%u", stream_id);
-    send_input_bin = gst_bin_get_by_name(GST_BIN(transport_agent->priv->transport_bin), bin_name);
-    g_assert(send_input_bin);
-    g_free(bin_name);
-    gst_element_set_state(send_input_bin, GST_STATE_NULL);
-    gst_bin_remove(GST_BIN(transport_agent->priv->transport_bin), send_input_bin);
-    gst_object_unref(send_input_bin);
+        /* Now the payload bin */
+        bin_name = g_strdup_printf("send-input-bin-%u", stream_id);
+        send_input_bin = gst_bin_get_by_name(GST_BIN(transport_agent->priv->transport_bin), bin_name);
+        g_assert(send_input_bin);
+        g_free(bin_name);
+        gst_element_set_state(send_input_bin, GST_STATE_NULL);
+        gst_bin_remove(GST_BIN(transport_agent->priv->transport_bin), send_input_bin);
+        gst_object_unref(send_input_bin);
 
-    /* Remove the connecting ghostpad */
-    gst_pad_set_active(sinkpad, FALSE);
-    gst_element_remove_pad(transport_agent->priv->transport_bin, sinkpad);
-    gst_object_unref(sinkpad);
+        /* Remove the connecting ghostpad */
+        gst_pad_set_active(sinkpad, FALSE);
+        gst_element_remove_pad(transport_agent->priv->transport_bin, sinkpad);
+        gst_object_unref(sinkpad);
 
-    value = _owr_value_table_add(event_data, "end_time", G_TYPE_INT64);
-    g_value_set_int64(value, g_get_monotonic_time());
-    OWR_POST_STATS(media_session, SEND_PIPELINE_REMOVED, event_data);
+        value = _owr_value_table_add(event_data, "end_time", G_TYPE_INT64);
+        g_value_set_int64(value, g_get_monotonic_time());
+        OWR_POST_STATS(media_session, SEND_PIPELINE_REMOVED, event_data);
+    }
 }
 
 static void on_new_send_payload(OwrTransportAgent *transport_agent,
@@ -1057,6 +1067,8 @@ static gboolean add_session(GHashTable *args)
     g_mutex_lock(&priv->sessions_lock);
     g_hash_table_insert(priv->sessions, GUINT_TO_POINTER(stream_id), session);
     g_object_ref(session);
+    // printf("REF MEDIA SESSION add_session: %d, %p\n", session->parent_instance.ref_count, session);
+
     g_mutex_unlock(&priv->sessions_lock);
 
     update_helper_servers(transport_agent, stream_id);
@@ -1161,6 +1173,8 @@ static gboolean add_session(GHashTable *args)
 
 end:
     g_object_unref(session);
+    printf("UNREF MEDIA SESSION add_session: %d, %p\n", session->parent_instance.ref_count, session);
+
     g_object_unref(transport_agent);
     g_hash_table_unref(args);
     return FALSE;
@@ -1407,7 +1421,9 @@ static void on_bitrate_change(GstElement *scream_queue, guint bitrate, guint ssr
 
     args = _owr_create_schedule_table(OWR_MESSAGE_ORIGIN(session));
 
-    g_hash_table_insert(args, "session", g_object_ref(session));
+    g_hash_table_insert(args, "session", session);
+    printf("REF MEDIA SESSION on_bitrate_change: %d, %p\n", session->parent_instance.parent_instance.ref_count, session);
+
     g_hash_table_insert(args, "bitrate", GUINT_TO_POINTER(bitrate));
 
     _owr_schedule_with_hash_table((GSourceFunc)emit_bitrate_change, args);
@@ -1516,6 +1532,8 @@ static void link_rtpbin_to_send_output_bin(OwrTransportAgent *transport_agent, g
         g_free(rtpbin_pad_name);
         g_free(dtls_srtp_pad_name);
         g_object_unref(media_session);
+        printf("UNREF MEDIA SESSION link_rtpbin_to_send_output_bin: %d, %p\n", media_session->parent_instance.parent_instance.ref_count, media_session);
+
 
         send_bin_info->linked_rtcp = TRUE;
     }
@@ -1846,6 +1864,8 @@ static void set_send_ssrc_and_cname(OwrTransportAgent *transport_agent, OwrMedia
         gst_structure_get_string(sdes, "cname"), NULL);
     gst_structure_free(sdes);
     g_object_unref(session);
+    printf("UNREF MEDIA SESSION set_send_ssrc_and_cname: %d, %p\n", media_session->parent_instance.parent_instance.ref_count, media_session);
+
 }
 
 static gboolean emit_new_candidate(GHashTable *args)
@@ -1891,6 +1911,9 @@ static gboolean emit_new_candidate(GHashTable *args)
     g_object_unref(owr_candidate);
 
     g_object_unref(session);
+    printf("UNREF MEDIA SESSION emit_new_candidate: %d, %p\n", session->parent_instance.ref_count, session);
+
+
     g_hash_table_destroy(args);
     g_object_unref(transport_agent);
 
@@ -1906,7 +1929,7 @@ static void on_new_candidate(NiceAgent *nice_agent, NiceCandidate *nice_candidat
     g_return_if_fail(OWR_IS_TRANSPORT_AGENT(transport_agent));
     g_return_if_fail(nice_candidate);
 
-    g_object_ref(transport_agent);
+    // g_object_ref(transport_agent);
     args = _owr_create_schedule_table(OWR_MESSAGE_ORIGIN(transport_agent));
     g_hash_table_insert(args, "transport_agent", transport_agent);
     g_hash_table_insert(args, "nice_candidate", nice_candidate_copy(nice_candidate));
@@ -1954,6 +1977,8 @@ static gboolean emit_candidate_gathering_done(GHashTable *args)
 
     g_hash_table_destroy(args);
     g_object_unref(session);
+    printf("UNREF MEDIA SESSION emit_candidate_gathering_done: %d, %p\n", session->parent_instance.ref_count, session);
+
 
     return FALSE;
 }
@@ -1993,6 +2018,8 @@ static gboolean emit_ice_state_changed(GHashTable *args)
 
     g_hash_table_destroy(args);
     g_object_unref(session);
+    printf("UNREF MEDIA SESSION emit_ice_state_changed: %d, %p\n", session->parent_instance.ref_count, session);
+
 
     return FALSE;
 }
@@ -2100,6 +2127,8 @@ static gboolean maybe_handle_new_send_source_with_payload_from_main_thread(GHash
 
     g_hash_table_destroy(args);
     g_object_unref(session);
+    printf("UNREF MEDIA SESSION maybe_handle_new_send_source_with_payload_from_main_thread: %d, %p\n", session->parent_instance.parent_instance.ref_count, session);
+
     g_object_unref(transport_agent);
 
     return FALSE;
@@ -2136,6 +2165,8 @@ on_dtls_enc_key_set(GstElement *dtls_srtp_enc, AgentAndSessionIdPair *data)
     g_mutex_unlock(&transport_agent->priv->sessions_lock);
 
     g_object_unref(session);
+    printf("UNREF MEDIA SESSION on_dtls_enc_key_set: %d, %p\n", session->parent_instance.ref_count, session);
+
 }
 
 static guint get_stream_id(OwrTransportAgent *transport_agent, OwrSession *session)
@@ -2482,6 +2513,9 @@ static gboolean emit_on_incoming_source(GHashTable *args)
 
     g_object_unref(source);
     g_object_unref(media_session);
+    printf("UNREF MEDIA SESSION on_dtls_enc_key_set: %d, %p\n", media_session->parent_instance.parent_instance.ref_count, media_session);
+
+
     g_hash_table_unref(args);
     return FALSE;
 }
@@ -2572,6 +2606,8 @@ static void on_rtpbin_pad_added(GstElement *rtpbin, GstPad *new_pad, OwrTranspor
         link_rtpbin_to_send_output_bin(transport_agent, session_id, FALSE, TRUE);
 
         g_object_unref(media_session);
+        printf("UNREF MEDIA SESSION on_rtpbin_pad_added: %d, %p\n", media_session->parent_instance.parent_instance.ref_count, media_session);
+
         g_object_unref(payload);
     } else if (g_str_has_prefix(new_pad_name, "send_rtp_src")) {
         guint32 session_id = 0;
@@ -2760,6 +2796,8 @@ static GstCaps * on_rtpbin_request_pt_map(GstElement *rtpbin, guint session_id, 
         g_object_unref(payload);
     }
     g_object_unref(media_session);
+    printf("UNREF MEDIA SESSION on_rtpbin_request_pt_map: %d, %p\n", media_session->parent_instance.parent_instance.ref_count, media_session);
+
 
     return caps;
 }
