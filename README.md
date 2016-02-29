@@ -41,3 +41,17 @@ OpenWebRTC was designed for flexibility and modularity. The bulk of the API laye
 <img src="http://static.squarespace.com/static/53f1eedee4b0439bf8d480c5/t/54241e32e4b04e698dffecec/1411653170102/Arch.png" alt="Simplified architecture" width="445" height="247">
 
 Applications built on top of OpenWebRTC will be interoperable with popular WebRTC-enabled browsers such as Chrome and Firefox.
+
+## Branches
+
+`master` - Contains upstream's master branch.
+
+`ZOO-10288-update-google_ice_compat` - Contains upstream's master branch changes as of February 2016 with our custom fixes and modifications for libnice and OpenWebRTC itself.
+
+`blank_frame_fixes` - OBSOLETE. Attempts to fix the flickering.
+
+`gh-pages` - This branch is even with EricssonResearch:gh-pages.
+
+`google_ice_compat` - Added Google ICE compatibility mode.
+
+`google_ice` - Probably obsolete.
